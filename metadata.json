@@ -1,0 +1,6 @@
+{
+  "name": "Discord Tier DevOps Suite",
+  "description": "Interactive web utility for generating, customizing, and simulating a production-grade discord.py tier system deployed concurrently with FastAPI on Hugging Face Docker Spaces.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
