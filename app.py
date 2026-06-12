@@ -1,9 +1,31 @@
 import socket
+import ssl
+import logging
+
+# Configure basic logging early so we can log monkeypatch registration
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
 # Force IPv4 DNS resolution to prevent ConnectionResetError / failure Routing IPv6 on Hugging Face Spaces
 orig_getaddrinfo = socket.getaddrinfo
 def getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
     return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
 socket.getaddrinfo = getaddrinfo_ipv4
+
+# Monkeypatch aiohttp to enforce IPv4, disable keep-alive (force_close) to prevent ConnectionResetError
+# due to Cloudflare connection dropping / idle socket reuse issues on Hugging Face Spaces / Python 3.13.
+try:
+    import aiohttp
+    orig_connector_init = aiohttp.TCPConnector.__init__
+    def custom_connector_init(self, *args, **kwargs):
+        kwargs['family'] = socket.AF_INET
+        kwargs['force_close'] = True
+        kwargs['keepalive_timeout'] = 0
+        kwargs['enable_cleanup_closed'] = True
+        orig_connector_init(self, *args, **kwargs)
+    aiohttp.TCPConnector.__init__ = custom_connector_init
+    logging.info("Successfully registered custom aiohttp.TCPConnector monkeypatch in app.py.")
+except Exception as e:
+    logging.error(f"Failed to register custom aiohttp.TCPConnector monkeypatch: {e}")
 
 import sys
 import huggingface_hub
