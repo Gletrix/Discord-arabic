@@ -19,6 +19,14 @@ from fastapi import FastAPI
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("DiscordDevOps")
 
+# Also add a file logger for live web monitoring in the dashboard
+try:
+    file_handler = logging.FileHandler("bot.log", encoding="utf-8")
+    file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+    logging.getLogger().addHandler(file_handler)
+except Exception as e:
+    pass
+
 # ==========================================
 # 🌐 fastapi Concurrent health server
 # ==========================================
