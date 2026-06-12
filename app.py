@@ -372,7 +372,10 @@ if __name__ == "__main__":
     bot_thread = threading.Thread(target=run_discord_bot, daemon=True)
     bot_thread.start()
     
-    # Launch Gradio server on standard port, reading environmental overrides smoothly
-    launch_port = int(os.getenv("PORT", 3000))
-    logger.info(f"🚀 Starting Gradio web server on port {launch_port}...")
+    # Use HF portal standard port (7860) as fallback when running on Hugging Face Spaces,
+    # and AI Studio standard port (3000) when running inside AI Studio development environment.
+    is_huggingface = any(k in os.environ for k in ["SPACE_ID", "SPACE_REPO_NAME", "SPACES_RESOURCES"])
+    default_port = 7860 if is_huggingface else 3000
+    launch_port = int(os.getenv("PORT", default_port))
+    logger.info(f"🚀 Starting Gradio web server on port {launch_port} (is_huggingface={is_huggingface})...")
     demo.launch(server_name="0.0.0.0", server_port=launch_port)
