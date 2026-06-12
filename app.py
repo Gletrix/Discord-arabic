@@ -840,6 +840,10 @@ async def startup_event():
 # ==========================================
 if __name__ == "__main__":
     import uvicorn
-    launch_port = int(os.getenv("PORT", 3000))
+    # Use HF portal standard port (7860) as fallback when running on Hugging Face Spaces
+    is_huggingface = any(k in os.environ for k in ["SPACE_ID", "SPACE_REPO_NAME", "SPACES_RESOURCES"])
+    default_port = 7860 if is_huggingface else 3000
+    launch_port = int(os.getenv("PORT", default_port))
+    
     logger.info(f"🚀 Starting unified Webhook Orchestrator Backend Server on port {launch_port}...")
     uvicorn.run(app_api, host="0.0.0.0", port=launch_port, log_level="info")
