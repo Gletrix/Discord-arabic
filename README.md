@@ -1,20 +1,23 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+---
+title: Discord Arabic
+emoji: 👾
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
 
-# Run and deploy your AI Studio app
+# Discord Tier DevOps Bot Suite (Hugging Face Deployment)
 
-This contains everything you need to run your app locally.
+This is a production-grade Discord bot script using **discord.py (v2.x)** that automatically creates and manages a structured tier system based on user roles, paired with a concurrent **FastAPI** health checker.
 
-View your app in AI Studio: https://ai.studio/apps/467297ab-f85f-433b-a9e9-67089a0582d3
+## 🤝 Prerequisites & Settings
+Make sure to add the `DISCORD_TOKEN` secret to your Hugging Face Space Settings menu!
+- `DISCORD_TOKEN`: Your private Discord bot credentials token.
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🚀 Repository Structure
+- `bot.py`: The unified engine running your Discord bot and your FastAPI health checker concurrently on port `7860`.
+- `requirements.txt`: Python package dependency listings.
+- `Dockerfile`: Secure, non-root user setup conforming to Hugging Face security parameters.
+- `README.md`: Contains the metadata requirements to launch the Docker compiler in Hugging Face.
