@@ -19,7 +19,7 @@ try:
     def custom_connector_init(self, *args, **kwargs):
         kwargs['family'] = socket.AF_INET
         kwargs['force_close'] = True
-        kwargs['keepalive_timeout'] = 0
+        kwargs.pop('keepalive_timeout', None)
         kwargs['enable_cleanup_closed'] = True
         orig_connector_init(self, *args, **kwargs)
     aiohttp.TCPConnector.__init__ = custom_connector_init
