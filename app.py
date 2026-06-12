@@ -241,6 +241,9 @@ async def handle_discord_interactions(
         logger.error("Environment variable PUBLIC_KEY is not configured!")
         raise HTTPException(status_code=500, detail="Discord application public key is missing.")
 
+    # Clean the public key format (strip whitespaces and quote wrapping)
+    discord_pub_key = discord_pub_key.strip().replace('"', '').replace("'", "")
+
     # Cryptographic validation check
     if not verify_discord_signature(body, x_signature_ed25519, x_signature_timestamp, discord_pub_key):
         raise HTTPException(status_code=401, detail="Invalid request signature.")
