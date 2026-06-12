@@ -11,8 +11,8 @@ def getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
     return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
 socket.getaddrinfo = getaddrinfo_ipv4
 
-# Monkeypatch aiohttp to enforce IPv4, disable keep-alive (force_close) to prevent ConnectionResetError
-# due to Cloudflare connection dropping / idle socket reuse issues on Hugging Face Spaces / Python 3.13.
+# Monkeypatch aiohttp to enforce IPv4, disable keep-alive (force_close) and disable strict SSL verification
+# to prevent ConnectionResetError due to Cloudflare connection blocking / strict TLS renegotiation on Hugging Face Spaces.
 try:
     import aiohttp
     orig_connector_init = aiohttp.TCPConnector.__init__
@@ -21,6 +21,7 @@ try:
         kwargs['force_close'] = True
         kwargs.pop('keepalive_timeout', None)
         kwargs['enable_cleanup_closed'] = True
+        kwargs['ssl'] = False  # Disable strict certification checks to bypass Handshake ConnectionResetError
         orig_connector_init(self, *args, **kwargs)
     aiohttp.TCPConnector.__init__ = custom_connector_init
     logging.info("Successfully registered custom aiohttp.TCPConnector monkeypatch in app.py.")
@@ -54,15 +55,16 @@ from bot import bot, logger, TRANSLATIONS, FAMOUS_LANGUAGES, TIER_SYSTEM
 
 # Define high-fidelity Gradio Theme and Stylesheet
 CUSTOM_CSS = """
-body, .gradio-container {
-    background-color: #f1f5f9 !important;
+body, .gradio-container, .main-blocks-container {
+    background-color: #0b0f19 !important;
+    color: #f1f5f9 !important;
 }
 .header-card {
-    background: linear-gradient(135deg, #1e293b, #0f172a);
-    color: white;
+    background: linear-gradient(135deg, #1e293b, #0f172a) !important;
+    border: 1px solid #334155 !important;
     padding: 2.5rem;
     border-radius: 1rem;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4) !important;
     margin-bottom: 2rem;
 }
 .header-card h1 {
@@ -76,41 +78,77 @@ body, .gradio-container {
     font-size: 1.1rem !important;
 }
 .status-card {
-    background: white;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    background: #111827 !important;
+    border: 1px solid #374151 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
     padding: 1.5rem;
     border-radius: 0.75rem;
+    color: #f1f5f9 !important;
+}
+.status-card h3, .status-card p, .status-card span, .status-card div, .status-card label {
+    color: #f1f5f9 !important;
 }
 .action-btn {
-    background-color: #0284c7 !important;
+    background: linear-gradient(135deg, #0284c7, #0369a1) !important;
     color: white !important;
+    border: none !important;
     border-radius: 0.5rem !important;
     font-weight: 600 !important;
-    transition: all 0.2s;
+    transition: all 0.2s !important;
+    box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3) !important;
 }
 .action-btn:hover {
-    background-color: #0369a1 !important;
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, #0369a1, #075985) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 6px rgba(2, 132, 199, 0.4) !important;
 }
 .danger-btn {
-    background-color: #ef4444 !important;
+    background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
     color: white !important;
+    border: none !important;
     border-radius: 0.5rem !important;
+    font-weight: 600 !important;
+    transition: all 0.2s !important;
+}
+.danger-btn:hover {
+    background: linear-gradient(135deg, #dc2626, #991b1b) !important;
+    transform: translateY(-1px) !important;
 }
 .log-terminal {
-    background-color: #0f172a !important;
-    color: #f1f5f9 !important;
+    background-color: #030712 !important;
+    color: #38bdf8 !important;
     font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
     padding: 1.5rem !important;
     border-radius: 0.5rem !important;
-    border: 1px solid #334155 !important;
+    border: 1px solid #1f2937 !important;
 }
 .info-card {
-    background-color: #f8fafc;
-    border-left: 4px solid #0284c7;
+    background-color: #1f2937 !important;
+    border-left: 4px solid #38bdf8 !important;
     padding: 1rem;
     border-radius: 0 0.5rem 0.5rem 0;
+    color: #e5e7eb !important;
+}
+/* Ensure Gradio components (tabs, dropdowns, textboxes) look brilliant in our slate theme */
+.tabs, .tab-nav, .tabitem {
+    background-color: #111827 !important;
+    border-bottom: 2px solid #374151 !important;
+    color: #e5e7eb !important;
+}
+.tab-nav button {
+    color: #9ca3af !important;
+}
+.tab-nav button.selected {
+    color: #38bdf8 !important;
+    border-bottom: 2px solid #38bdf8 !important;
+}
+.gr-box, .gr-input, input, textarea, select {
+    background-color: #1f2937 !important;
+    color: #f1f5f9 !important;
+    border-color: #374151 !important;
+}
+.gr-box:focus, .gr-input:focus, input:focus, textarea:focus, select:focus {
+    border-color: #38bdf8 !important;
 }
 """
 
@@ -168,7 +206,18 @@ def trigger_admin_reconstruct_sync():
 
 def read_prompt_template(filepath):
     if not os.path.exists(filepath):
-        return f"Error: '{filepath}' could not be located in this project container."
+        defaults = {
+            "checkpoint1.txt": "# 🎭 Personalized Conversational Prompt Coach (Level 1)\nYou are now acting as the user's interactive AI coach. Based on the registered profile data below, tailor your terminology, tone of voice, and discussion topics:\n\n=== REGISTERED USER PROFILE ===\n{profile_data}\n==============================\n\n## 🎯 Active Goals (Checkpoint 1: Core Fundamentals)\n- Initiate a dynamic, localized coaching dialogue using the user's MOTHER_TONGUE.\n- Gauge the user's familiarity with their FAVORITE_TOPICS.\n- Adapt all explanations dynamically to suit the user's AGE and OCCUPATION.\n- Keep responses concise, clear, and engaging.",
+            "checkpoint2.txt": "# 🎭 Personalized Conversational Prompt Coach (Level 2)\nYou are now acting as the user's interactive AI coach for deeper application drills. Tailor your terminology, tone of voice, and discussion topics:\n\n=== REGISTERED USER PROFILE ===\n{profile_data}\n==============================\n\n## 🎯 Active Goals (Checkpoint 2: In-Depth Practice)\n- Introduce intermediate scenario challenges in the user's MOTHER_TONGUE.\n- Guide them through hands-on roleplay drills regarding their OCCUPATION and FAVORITE_TOPICS.\n- Use encouraging phrasing, offering active positive feedback loops on progress.",
+            "checkpoint3.txt": "# 🎭 Personalized Conversational Prompt Coach (Level 3)\nYou are now acting as the user's interactive AI coach for advanced analytical problem solving. Tailor your terminology, tone of voice, and discussion topics:\n\n=== REGISTERED USER PROFILE ===\n{profile_data}\n==============================\n\n## 🎯 Active Goals (Checkpoint 3: Diagnostic Case Studies)\n- Frame advanced, open-ended case studies matching their OCCUPATION and FAVORITE_TOPICS.\n- Audit their reasoning skills, correcting misconceptions gently but thoroughly.\n- Encourage self-correction by asking reflective, probing questions.",
+            "checkpoint4.txt": "# 🎭 Personalized Conversational Prompt Coach (Level 4)\nYou are now acting as the user's Masterclass Coach guiding them through final mastery evaluation. Tailor your terminology, tone of voice, and discussion topics:\n\n=== REGISTERED USER PROFILE ===\n{profile_data}\n==============================\n\n## 🎯 Active Goals (Checkpoint 4: Masterclass Synthesis)\n- Challenge the user with a comprehensive scenario combining multiple topics.\n- Require high-precision professional outputs tailored perfectly to their AGE and OCCUPATION.\n- Assess their command of technical vocabulary, certifying them upon successful completion."
+        }
+        fallback_content = defaults.get(filepath, f"# {filepath.capitalize()} Blueprint\n\n{{profile_data}}")
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(fallback_content)
+        except Exception as e:
+            return f"Error: '{filepath}' could not be located, and auto-restoration failed: {str(e)}"
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             return f.read()
@@ -176,8 +225,6 @@ def read_prompt_template(filepath):
         return f"Error reading file: {str(e)}"
 
 def write_prompt_template_changes(filepath, new_content):
-    if not os.path.exists(filepath):
-        return f"❌ Target template file '{filepath}' is missing."
     if not new_content or not new_content.strip():
         return "❌ Operation blocked: Cannot overwrite with empty prompt instructions template."
     try:

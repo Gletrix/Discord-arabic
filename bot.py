@@ -11,8 +11,8 @@ def getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
     return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
 socket.getaddrinfo = getaddrinfo_ipv4
 
-# Monkeypatch aiohttp to enforce IPv4, disable keep-alive (force_close) to prevent ConnectionResetError
-# due to Cloudflare connection dropping / idle socket reuse issues on Hugging Face Spaces / Python 3.13.
+# Monkeypatch aiohttp to enforce IPv4, disable keep-alive (force_close) and disable strict SSL verification
+# to prevent ConnectionResetError due to Cloudflare connection blocking / strict TLS renegotiation on Hugging Face Spaces.
 try:
     import aiohttp
     orig_connector_init = aiohttp.TCPConnector.__init__
@@ -21,6 +21,7 @@ try:
         kwargs['force_close'] = True
         kwargs.pop('keepalive_timeout', None)
         kwargs['enable_cleanup_closed'] = True
+        kwargs['ssl'] = False  # Disable strict certification checks to bypass Handshake ConnectionResetError
         orig_connector_init(self, *args, **kwargs)
     aiohttp.TCPConnector.__init__ = custom_connector_init
     logging.info("Successfully registered custom aiohttp.TCPConnector monkeypatch in bot.py.")
