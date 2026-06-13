@@ -595,7 +595,7 @@ async def register_commands_endpoint():
 
     try:
         # Fetch App ID dynamically using token
-        req_me = urllib.request.Request("https://discord.com/api/v10/users/@me", headers=headers)
+        req_me = urllib.request.Request("https://discord.com/api/v10/applications/@me", headers=headers)
         with urllib.request.urlopen(req_me) as response:
             me_data = json.loads(response.read().decode("utf-8"))
             app_id = me_data.get("id")
@@ -803,7 +803,7 @@ async def home_dashboard():
                 </div>
                 
                 <script>
-                    async function registerCommands() {
+                    async function registerCommands() {{
                         const btn = document.getElementById('registerBtn');
                         const status = document.getElementById('registerStatus');
                         
@@ -813,25 +813,25 @@ async def home_dashboard():
                         status.classList.add('text-indigo-400');
                         status.innerText = "Dispatching command payload to Discord...";
                         
-                        try {
-                            const res = await fetch('/api/register_commands', { method: 'POST' });
+                        try {{
+                            const res = await fetch('/api/register_commands', {{ method: 'POST' }});
                             const data = await res.json();
                             
-                            if (data.status === 'success') {
+                            if (data.status === 'success') {{
                                 status.classList.replace('text-indigo-400', 'text-emerald-400');
                                 status.innerText = "✅ " + data.message;
-                            } else {
+                            }} else {{
                                 status.classList.replace('text-indigo-400', 'text-red-400');
                                 status.innerText = "❌ " + data.message;
-                            }
-                        } catch (e) {
+                            }}
+                        }} catch (e) {{
                             status.classList.replace('text-indigo-400', 'text-red-400');
                             status.innerText = "❌ Network error occurred while triggering endpoint.";
-                        }
+                        }}
                         
                         btn.disabled = false;
                         btn.innerHTML = '<span>📡 Register Commands to Discord</span>';
-                    }
+                    }}
                 </script>
 
                 <!-- Execution Terminal Logs -->
