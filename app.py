@@ -594,11 +594,22 @@ async def register_commands_endpoint():
     }
 
     try:
-        # Fetch App ID dynamically using token
-        req_me = urllib.request.Request("https://discord.com/api/v10/applications/@me", headers=headers)
-        with urllib.request.urlopen(req_me) as response:
-            me_data = json.loads(response.read().decode("utf-8"))
-            app_id = me_data.get("id")
+        # Fetch App ID dynamically using curl
+        me_cmd = [
+            "curl", "-s", "-X", "GET",
+            "https://discord.com/api/v10/users/@me",
+            "-H", f"Authorization: Bot {token}",
+            "-H", "Content-Type: application/json"
+        ]
+        import subprocess
+        me_res = subprocess.run(me_cmd, capture_output=True, text=True)
+        if me_res.returncode != 0 or not me_res.stdout:
+            return JSONResponse({"status": "error", "message": "Failed to fetch App ID via curl."})
+        
+        me_data = json.loads(me_res.stdout)
+        app_id = me_data.get("id")
+        if not app_id:
+            return JSONResponse({"status": "error", "message": f"Did not receive valid App ID. Discord said: {me_res.stdout}"})
 
         commands = [
             {
@@ -625,23 +636,27 @@ async def register_commands_endpoint():
         ]
         
         url = f"https://discord.com/api/v10/applications/{app_id}/commands"
-        req_cmd = urllib.request.Request(
-            url, 
-            data=json.dumps(commands).encode("utf-8"), 
-            headers=headers, 
-            method="PUT"
-        )
+        cmd_proc = [
+            "curl", "-s", "-X", "PUT",
+            url,
+            "-H", f"Authorization: Bot {token}",
+            "-H", "Content-Type: application/json",
+            "-d", json.dumps(commands)
+        ]
         
-        with urllib.request.urlopen(req_cmd) as response:
-            if response.status == 200:
+        reg_res = subprocess.run(cmd_proc, capture_output=True, text=True)
+        
+        if reg_res.returncode == 0:
+            reg_data = json.loads(reg_res.stdout)
+            if isinstance(reg_data, list) or reg_data.get("id"):
                 return JSONResponse({"status": "success", "message": "Commands successfully registered globally! (It may take up to 1 hour to appear across all servers)."})
-            return JSONResponse({"status": "error", "message": f"Discord returned status {response.status}"})
+            else:
+                return JSONResponse({"status": "error", "message": f"Discord returned: {reg_res.stdout}"})
+        else:
+            return JSONResponse({"status": "error", "message": f"Curl request failed: {reg_res.stderr}"})
                 
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8")
-        return JSONResponse({"status": "error", "message": f"HTTP Error {e.code}: {error_body}"})
     except Exception as e:
-        return JSONResponse({"status": "error", "message": f"Exception occurred: {str(e)}"})
+        return JSONResponse({"status": "error", "message": f"Exception occurred: {str(e)}" })
 
 # ==========================================
 # 📊 Visual Telemetry Dashboard (GET "/")
