@@ -736,7 +736,7 @@ async def home_dashboard():
                             <code class="text-[10px] text-emerald-400 whitespace-pre">curl -X PUT "https://discord.com/api/v10/applications/YOUR_APP_ID/commands" \
   -H "Authorization: Bot YOUR_BOT_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '[{"name":"set-profile","description":"Defines customized profile and triggers target conversational learning prompts.","options":[{"name":"language","description":"Select your native tongue for instructions.","type":3,"required":true,"autocomplete":true}]},{"name":"vibecheck","description":"Sends a live checkpoint milestone alert to private review staff channels."},{"name":"sync_server","description":"Repairs categories, creates missing text/voice subchannels."}]'</code>
+  -d '[{{"name":"set-profile","description":"Defines customized profile and triggers target conversational learning prompts.","options":[{{"name":"language","description":"Select your native tongue for instructions.","type":3,"required":true,"autocomplete":true}}]}},{{"name":"vibecheck","description":"Sends a live checkpoint milestone alert to private review staff channels."}},{{"name":"sync_server","description":"Repairs categories, creates missing text/voice subchannels."}}]'</code>
                         </div>
                     </div>
                 </div>
