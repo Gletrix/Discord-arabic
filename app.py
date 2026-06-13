@@ -575,71 +575,6 @@ async def handle_discord_interactions(
     raise HTTPException(status_code=400, detail="Unhandled interaction request.")
 
 # ==========================================
-# 📡 Webhook Command Registration Endpoint
-# ==========================================
-import urllib.request
-import urllib.error
-import json
-
-@app_api.post("/api/register_commands")
-async def register_commands_endpoint():
-    token = os.getenv("DISCORD_TOKEN")
-    app_id = os.getenv("APP_ID")
-    
-    if not token or not app_id:
-        return JSONResponse({"status": "error", "message": "Missing DISCORD_TOKEN or APP_ID in environment variables."})
-    
-    headers = {
-        "Authorization": f"Bot {token}",
-        "Content-Type": "application/json",
-        "User-Agent": "DiscordBot (https://huggingface.co, 1.0)"
-    }
-
-    try:
-        commands = [
-            {
-                "name": "set-profile",
-                "description": "Defines customized profile and triggers target conversational learning prompts.",
-                "options": [
-                    {
-                        "name": "language",
-                        "description": "Select your native tongue for instructions.",
-                        "type": 3, 
-                        "required": True,
-                        "autocomplete": True
-                    }
-                ]
-            },
-            {
-                "name": "vibecheck",
-                "description": "Sends a live checkpoint milestone alert to private review staff channels."
-            },
-            {
-                "name": "sync_server",
-                "description": "Repairs categories, creates missing text/voice subchannels."
-            }
-        ]
-        
-        url = f"https://discord.com/api/v10/applications/{app_id}/commands"
-        req_cmd = urllib.request.Request(
-            url, 
-            data=json.dumps(commands).encode("utf-8"), 
-            headers=headers, 
-            method="PUT"
-        )
-        
-        with urllib.request.urlopen(req_cmd) as response:
-            if response.status == 200:
-                return JSONResponse({"status": "success", "message": "Commands successfully registered globally! (It may take up to 1 hour to appear across all servers)."})
-            return JSONResponse({"status": "error", "message": f"Discord returned status {response.status}"})
-                
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8")
-        return JSONResponse({"status": "error", "message": f"HTTP Error {e.code}: {error_body}"})
-    except Exception as e:
-        return JSONResponse({"status": "error", "message": f"Exception occurred: {str(e)}"})
-
-# ==========================================
 # 📊 Visual Telemetry Dashboard (GET "/")
 # ==========================================
 @app_api.get("/", response_class=HTMLResponse)
@@ -792,43 +727,19 @@ async def home_dashboard():
                         <li>Configure <code>PUBLIC_KEY</code> environmental secrets.</li>
                         <li>Let verified clients fetch prompts instantly via the Claim Button!</li>
                     </ul>
-                    <button id="registerBtn" onclick="registerCommands()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
-                        <span>📡 Register Commands to Discord</span>
-                    </button>
-                    <p id="registerStatus" class="text-[10px] text-gray-400 mt-2 text-center hidden"></p>
+                    
+                    <div class="mt-5 pt-5 border-t border-indigo-500/20">
+                        <p class="text-[11px] font-semibold text-rose-400 mb-2">⚠️ Hugging Face free tier blocks outbound requests.</p>
+                        <p class="text-[11px] text-indigo-200/80 mb-3">To register your commands, copy and run this from your own computer's terminal or command prompt (Replace YOUR_APP_ID and YOUR_BOT_TOKEN):</p>
+                        
+                        <div class="relative bg-black rounded-lg p-3 text-left overflow-x-auto border border-gray-800">
+                            <code class="text-[10px] text-emerald-400 whitespace-pre">curl -X PUT "https://discord.com/api/v10/applications/YOUR_APP_ID/commands" \
+  -H "Authorization: Bot YOUR_BOT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[{"name":"set-profile","description":"Defines customized profile and triggers target conversational learning prompts.","options":[{"name":"language","description":"Select your native tongue for instructions.","type":3,"required":true,"autocomplete":true}]},{"name":"vibecheck","description":"Sends a live checkpoint milestone alert to private review staff channels."},{"name":"sync_server","description":"Repairs categories, creates missing text/voice subchannels."}]'</code>
+                        </div>
+                    </div>
                 </div>
-                
-                <script>
-                    async function registerCommands() {{
-                        const btn = document.getElementById('registerBtn');
-                        const status = document.getElementById('registerStatus');
-                        
-                        btn.disabled = true;
-                        btn.innerHTML = '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span><span>Registering...</span>';
-                        status.classList.remove('hidden', 'text-emerald-400', 'text-red-400');
-                        status.classList.add('text-indigo-400');
-                        status.innerText = "Dispatching command payload to Discord...";
-                        
-                        try {{
-                            const res = await fetch('/api/register_commands', {{ method: 'POST' }});
-                            const data = await res.json();
-                            
-                            if (data.status === 'success') {{
-                                status.classList.replace('text-indigo-400', 'text-emerald-400');
-                                status.innerText = "✅ " + data.message;
-                            }} else {{
-                                status.classList.replace('text-indigo-400', 'text-red-400');
-                                status.innerText = "❌ " + data.message;
-                            }}
-                        }} catch (e) {{
-                            status.classList.replace('text-indigo-400', 'text-red-400');
-                            status.innerText = "❌ Network error occurred while triggering endpoint.";
-                        }}
-                        
-                        btn.disabled = false;
-                        btn.innerHTML = '<span>📡 Register Commands to Discord</span>';
-                    }}
-                </script>
 
                 <!-- Execution Terminal Logs -->
                 <div class="bg-black/80 border border-gray-800 rounded-2xl p-6 shadow-xl">
